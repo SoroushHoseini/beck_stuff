@@ -1,10 +1,10 @@
 import logging
 from collections import Counter
+from typing import Dict, Tuple, List, Optional
+import numpy as np
 
-# configure logging to output to terminal
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s:%(message)s")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s:%(message)s')
 logger = logging.getLogger(__name__)
-
 
 class SpinState:
     """
@@ -49,6 +49,7 @@ class MatrixState:
     """
     Represents a tensor-product matrix of two SpinState systems of equal size.
     Internally stored as a sparse mapping from (row_index, col_index) to coefficient.
+    Eigenvalues of the full matrix are computed and stored after every update.
     """
 
     def __init__(self, size: int, left_sz_power: int, right_sz_power: int) -> None:
@@ -63,9 +64,7 @@ class MatrixState:
         if size < 1:
             raise ValueError("size must be a positive integer")
         self.size: int = size
-        logger.info(
-            f"Creating MatrixState(size={size}, left_sz={left_sz_power}, right_sz={right_sz_power})"
-        )
+        logger.info(f"Creating MatrixState(size={size}, left_sz={left_sz_power}, right_sz={right_sz_power})")
 
         self.left = SpinState(size)
         self.right = SpinState(size)
@@ -75,12 +74,32 @@ class MatrixState:
         logger.info("Applying sz to right subsystem...")
         self.right.sz(right_sz_power)
 
-        self.matrix: dict[tuple[int, int], int] = {}
+        self.matrix: Dict[Tuple[int, int], int] = {}
         for i, ci in self.left.state.items():
             for j, cj in self.right.state.items():
                 key = (i, j)
                 self.matrix[key] = self.matrix.get(key, 0) + ci * cj
         logger.info(f"Tensor-product matrix constructed with {len(self.matrix)} nonzero entries")
+
+        self.eigenvalues: Optional[List[float]] = None
+        self._update_eigenvalues()
+
+    def _update_eigenvalues(self) -> None:
+        """
+        Calculate and store the eigenvalues of the dense version of the current matrix.
+        Eigenvalues are sorted by their real part.
+        """
+        dim = 2 ** self.size
+        arr = np.zeros((dim, dim), dtype=float)
+        for (i, j), coeff in self.matrix.items():
+            arr[i, j] = coeff
+        try:
+            eigs = np.linalg.eigvals(arr)
+            self.eigenvalues = sorted(eigs.real.tolist())
+            logger.info(f"Eigenvalues updated ({len(self.eigenvalues)} total)")
+        except Exception as exc:
+            logger.error(f"Eigenvalue computation failed: {exc}")
+            self.eigenvalues = None
 
     def partial_transpose(self, k: int) -> None:
         """
@@ -92,7 +111,7 @@ class MatrixState:
         if k < 0 or k > self.size:
             raise ValueError("k must be between 0 and size")
         mask = (1 << k) - 1
-        new_matrix: dict[tuple[int, int], int] = {}
+        new_matrix: Dict[Tuple[int, int], int] = {}
         for (i, j), coeff in self.matrix.items():
             i_low = i & mask
             i_high = i >> k
@@ -102,6 +121,6 @@ class MatrixState:
             new_j = (j_high << k) | i_low
             new_matrix[(new_i, new_j)] = new_matrix.get((new_i, new_j), 0) + coeff
         self.matrix = new_matrix
-        logger.info(
-            f"Performed partial transpose(k={k}), new matrix has {len(self.matrix)} nonzero entries"
-        )
+        logger.info(f"Performed partial transpose(k={k}), new matrix has {len(self.matrix)} nonzero entries")
+        self._update_eigenvalues()
+
