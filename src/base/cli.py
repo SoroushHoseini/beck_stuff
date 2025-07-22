@@ -37,9 +37,6 @@ def main() -> None:
     start_time = time.perf_counter()
     matrix_state = MatrixState(args.size, args.left_sz, args.right_sz)
     duration = time.perf_counter() - start_time
-    logger.info(
-        f"Computed matrix in {duration:.6f} seconds"
-    )
 
     if args.partial_transpose is not None:
         logger.info(
@@ -83,6 +80,15 @@ def main() -> None:
             print("  " + "  ".join(line))
     else:
         print("Eigenvalues could not be computed.")
+
+    if matrix_state.negativity is not None:
+        print(f"\nNegativity: {matrix_state.negativity:.6g}")
+    else:
+        print("\nNegativity could not be computed.")
+
+    logger.info(
+        f"Computed matrix in {duration:.6f} seconds"
+    )
 
 if __name__ == "__main__":
     main()

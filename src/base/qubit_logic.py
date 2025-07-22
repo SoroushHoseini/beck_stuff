@@ -13,12 +13,6 @@ class SpinState:
     """
 
     def __init__(self, size: int) -> None:
-        """
-        Initialize a spin state of given size with all spins set to 0.
-        The internal state is a Counter mapping basis-index to coefficient.
-
-        :param size: number of spins (must be positive)
-        """
         if size < 1:
             raise ValueError("size must be a positive integer")
         self.size: int = size
@@ -26,13 +20,6 @@ class SpinState:
         logger.info(f"Initialized SpinState(size={self.size}) with state={{0: 1}}")
 
     def sz(self, power: int) -> None:
-        """
-        Apply the 'single-spin flip' operator power times.
-        Each application flips each spin once, expanding the superposition,
-        and collects like terms by summing coefficients.
-
-        :param power: number of times to apply the flip operation (must be positive)
-        """
         if power < 1:
             raise ValueError("power must be a positive integer")
         for p in range(1, power + 1):
@@ -44,23 +31,19 @@ class SpinState:
             self.state = new_state
             logger.info(f"After sz({p}), state has {len(self.state)} terms")
 
-
 class MatrixState:
     """
     Represents a tensor-product matrix of two SpinState systems of equal size.
     Internally stored as a sparse mapping from (row_index, col_index) to coefficient.
-    Eigenvalues of the full matrix are computed and stored after every update.
+
+    Additionally computes and stores:
+      - Dense numpy array representation of the matrix.
+      - Eigenvalues of the matrix.
+      - The matrix normalized by its trace (as a numpy array).
+      - Negativity: sum of negative eigenvalues of the normalized matrix.
     """
 
     def __init__(self, size: int, left_sz_power: int, right_sz_power: int) -> None:
-        """
-        Initialize the matrix state by creating two SpinState objects,
-        applying sz on each, then building their tensor-product.
-
-        :param size: number of spins in each subsystem (must be positive)
-        :param left_sz_power: number of sz applications on the left subsystem
-        :param right_sz_power: number of sz applications on the right subsystem
-        """
         if size < 1:
             raise ValueError("size must be a positive integer")
         self.size: int = size
@@ -82,12 +65,16 @@ class MatrixState:
         logger.info(f"Tensor-product matrix constructed with {len(self.matrix)} nonzero entries")
 
         self.eigenvalues: Optional[List[float]] = None
-        self._update_eigenvalues()
+        self.normalized_matrix: Optional[np.ndarray] = None
+        self.negativity: Optional[float] = None
+        self._update_analysis()
 
-    def _update_eigenvalues(self) -> None:
+    def _update_analysis(self) -> None:
         """
-        Calculate and store the eigenvalues of the dense version of the current matrix.
-        Eigenvalues are sorted by their real part.
+        Updates all derived data:
+          - eigenvalues (real part, sorted)
+          - normalized matrix (dense, by trace)
+          - negativity (sum of negative eigenvalues of normalized matrix)
         """
         dim = 2 ** self.size
         arr = np.zeros((dim, dim), dtype=float)
@@ -101,13 +88,22 @@ class MatrixState:
             logger.error(f"Eigenvalue computation failed: {exc}")
             self.eigenvalues = None
 
-    def partial_transpose(self, k: int) -> None:
-        """
-        Perform the partial transpose operation by swapping the last k bits
-        between row and column indices in the matrix keys.
+        tr = float(np.trace(arr))
+        if abs(tr) > 1e-12:
+            self.normalized_matrix = arr / tr
+            try:
+                norm_eigs = np.linalg.eigvals(self.normalized_matrix)
+                self.negativity = float(np.sum(norm_eigs.real[norm_eigs.real < 0]))
+                logger.info(f"Negativity updated: {self.negativity:.6g}")
+            except Exception as exc:
+                logger.error(f"Normalized eigenvalue computation failed: {exc}")
+                self.negativity = None
+        else:
+            self.normalized_matrix = None
+            self.negativity = None
+            logger.warning("Matrix trace is zero; cannot normalize.")
 
-        :param k: number of least-significant bits to transpose (0 <= k <= size)
-        """
+    def partial_transpose(self, k: int) -> None:
         if k < 0 or k > self.size:
             raise ValueError("k must be between 0 and size")
         mask = (1 << k) - 1
@@ -122,5 +118,5 @@ class MatrixState:
             new_matrix[(new_i, new_j)] = new_matrix.get((new_i, new_j), 0) + coeff
         self.matrix = new_matrix
         logger.info(f"Performed partial transpose(k={k}), new matrix has {len(self.matrix)} nonzero entries")
-        self._update_eigenvalues()
+        self._update_analysis()
 
