@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+pdfs/*.log
+pdfs/*.tmp
+pdfs/*.aux
+pdfs/*.out
+pdfs/*.toc
+pdfs/*.synctex.gz
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+

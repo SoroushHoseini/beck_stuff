@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies with uv
+        run: uv pip install --system -e .
+
+      - name: Print Python version
+        run: python --version
+
+      - name: Print mypy version
+        run: uv run mypy --version
+
+      - name: Print ruff version
+        run: uv run ruff --version
+
+      - name: Run ruff
+        run: uv run ruff check src/qpv/
+
+      - name: Run mypy
+        run: uv run mypy

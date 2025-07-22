@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+src/base/qubit_logic.py
+src/beck_stuff.egg-info/PKG-INFO
+src/beck_stuff.egg-info/SOURCES.txt
+src/beck_stuff.egg-info/dependency_links.txt
+src/beck_stuff.egg-info/requires.txt
+src/beck_stuff.egg-info/top_level.txt
