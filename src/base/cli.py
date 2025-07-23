@@ -1,34 +1,27 @@
 import argparse
-import time
 import logging
+import time
+
 from base.qubit_logic import MatrixState
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compute and display a qubit MatrixState and its computation time"
     )
+    parser.add_argument("size", type=int, help="number of spins (qubits)")
+    parser.add_argument("left_sz", type=int, help="power for sz on the left subsystem")
+    parser.add_argument("right_sz", type=int, help="power for sz on the right subsystem")
     parser.add_argument(
-        "size", type=int,
-        help="number of spins (qubits)"
-    )
-    parser.add_argument(
-        "left_sz", type=int,
-        help="power for sz on the left subsystem"
-    )
-    parser.add_argument(
-        "right_sz", type=int,
-        help="power for sz on the right subsystem"
-    )
-    parser.add_argument(
-        "--partial-transpose", "-p", type=int, default=None,
-        help="amount of partial transpose (must be <= size)"
+        "--partial-transpose",
+        "-p",
+        type=int,
+        default=None,
+        help="amount of partial transpose (must be <= size)",
     )
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s: %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
     logger = logging.getLogger(__name__)
 
     logger.info(
@@ -39,13 +32,11 @@ def main() -> None:
     duration = time.perf_counter() - start_time
 
     if args.partial_transpose is not None:
-        logger.info(
-            f"Applying partial transpose of {args.partial_transpose}"
-        )
+        logger.info(f"Applying partial transpose of {args.partial_transpose}")
         matrix_state.partial_transpose(args.partial_transpose)
 
     n = args.size
-    dim = 2 ** n
+    dim = 2**n
 
     all_values = list(matrix_state.matrix.values()) + [0]
     max_coeff_width = max(len(str(int(x))) for x in all_values)
@@ -86,10 +77,8 @@ def main() -> None:
     else:
         print("\nNegativity could not be computed.")
 
-    logger.info(
-        f"Computed matrix in {duration:.6f} seconds"
-    )
+    logger.info(f"Computed matrix in {duration:.6f} seconds")
+
 
 if __name__ == "__main__":
     main()
-

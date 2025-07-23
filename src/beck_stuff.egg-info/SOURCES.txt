@@ -1,5 +1,6 @@
 README.md
 pyproject.toml
+src/base/cli.py
 src/base/qubit_logic.py
 src/beck_stuff.egg-info/PKG-INFO
 src/beck_stuff.egg-info/SOURCES.txt
