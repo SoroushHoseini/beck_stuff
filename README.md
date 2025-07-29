@@ -27,10 +27,10 @@ This installs the QPV project.
 Still in the root directory, start the GUI with:
 
 ```
-uv run src/qpv/position/interactive_gui.py
+uv run src/base/cli.py N a1 a2 -p p1
 ```
 
-This command launches a Tk-based graphical interface for configuring verifiers, manipulating parameters, and visualizing the minimax intersection of light-speed spheres in 1D, 2D, or 3D.
+This command is an example of how to use the matrices, it generates the Spin matrix with Sz^a1 ($/rho_0$) Sz^a2 with a partition of p1.
 
 > You must run this command from the directory containing `pyproject.toml` for everything to work correctly.
 
